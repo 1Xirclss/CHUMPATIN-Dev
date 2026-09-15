@@ -1,0 +1,16 @@
+{
+  "name": "chumpatin-xxl-system",
+  "version": "1.0.0",
+  "description": "Sistema de Control de Ventas, Asistencia y Entrega de Pulseras para CHUMPATIN XXL - Senior Send-Off Promo 2026",
+  "scripts": {
+    "dev:backend": "cd Backend && npm run dev",
+    "dev:frontend": "cd Frontend && npm run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1Xirclss/CHUMPATIN-Dev.git"
+  },
+  "keywords": ["chumpatin", "party", "tickets", "mongodb", "react", "express"],
+  "author": "Chumpatin Dev",
+  "license": "ISC"
+}
