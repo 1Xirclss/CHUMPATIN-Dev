@@ -11,8 +11,8 @@ const getBaseUrl = () => {
     window.location.hostname !== "localhost" &&
     window.location.hostname !== "127.0.0.1"
   ) {
-    // URL por defecto en Render si no se configuró en Vercel
-    return "https://chumpatin-backend.onrender.com/api";
+    // URL oficial de Render para CHUMPATIN
+    return "https://chumpatin-dev.onrender.com/api";
   }
 
   // 3. Entorno local en PC
