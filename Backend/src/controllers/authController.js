@@ -13,28 +13,6 @@ const generateToken = (user) => {
   );
 };
 
-// Asegurar que existe al menos un usuario administrador por defecto
-export const ensureAdminUser = async () => {
-  try {
-    const adminExists = await User.findOne({ role: "admin" });
-    if (!adminExists) {
-      const defaultPassword = "admin123";
-      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-      const admin = await User.create({
-        name: "Administrador CHUMPATIN",
-        email: "admin@chumpatin.com",
-        password: hashedPassword,
-        role: "admin",
-      });
-      console.log("👑 [Auth] Usuario Administrador por defecto inicializado:");
-      console.log("   Correo: admin@chumpatin.com");
-      console.log("   Clave: admin123");
-    }
-  } catch (error) {
-    console.error("Error al asegurar usuario admin inicial:", error.message);
-  }
-};
-
 // Registro de nuevo Administrador / Staff
 export const register = async (req, res) => {
   try {

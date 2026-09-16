@@ -14,9 +14,9 @@ export const LoginPage = () => {
   const { login, register } = useAuth();
   const [activeTab, setActiveTab] = useState("login"); // 'login' | 'register' | 'recovery'
 
-  // Campos Login
-  const [email, setEmail] = useState("admin@chumpatin.com");
-  const [password, setPassword] = useState("admin123");
+  // Campos Login (Vacíos sin prefijo)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   // Campos Registro
   const [regName, setRegName] = useState("");
@@ -149,7 +149,7 @@ export const LoginPage = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@chumpatin.com"
+                  placeholder="tu.correo@ejemplo.com"
                   className="input-with-icon"
                 />
               </div>
@@ -193,10 +193,6 @@ export const LoginPage = () => {
               <span>{loading ? "Accediendo..." : "Ingresar al Sistema"}</span>
               <HiOutlineArrowRight className="w-4 h-4" />
             </button>
-
-            <div className="mt-4 p-3 bg-black/40 rounded-xl border border-white/[0.06] text-[11px] text-slate-400 text-center">
-              Acceso por defecto: <strong className="text-slate-200">admin@chumpatin.com</strong> / <strong className="text-slate-200">admin123</strong>
-            </div>
           </form>
         )}
 
