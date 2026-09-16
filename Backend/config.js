@@ -4,7 +4,7 @@ dotenv.config();
 export const config = {
   port: process.env.PORT || 5000,
   db: {
-    URI: process.env.DB_URI || "mongodb://127.0.0.1:27017/chumpatin_db",
+    URI: process.env.DB_URI || "mongodb://Cris:1234@ac-wp7enmg-shard-00-00.gwcqbvw.mongodb.net:27017,ac-wp7enmg-shard-00-01.gwcqbvw.mongodb.net:27017,ac-wp7enmg-shard-00-02.gwcqbvw.mongodb.net:27017/ChumpatinXXL?ssl=true&replicaSet=atlas-tfx964-shard-0&authSource=admin&appName=BasesDatosCristian",
   },
   jwt: {
     secret: process.env.JWT_SECRET_KEY || "Marco123",
@@ -24,5 +24,5 @@ export const config = {
     apiKey: process.env.CLOUDINARY_API_KEY || "353813691619975",
     apiSecret: process.env.CLOUDINARY_API_SECRET || "Be9nniq7JtEkheQbfDmKfu4XZUc",
   },
-  frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
+  frontendUrl: process.env.FRONTEND_URL || "https://chumpatin-dev.vercel.app",
 };

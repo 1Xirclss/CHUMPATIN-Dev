@@ -1,25 +1,7 @@
-// Detección dinámica y robusta de la URL del Backend
-const getBaseUrl = () => {
-  // 1. Si Vercel tiene configurada la variable VITE_API_URL
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL.replace(/\/+$/, "");
-  }
-
-  // 2. Si estamos navegando desde un celular o dominio web externo (ej. vercel.app)
-  if (
-    typeof window !== "undefined" &&
-    window.location.hostname !== "localhost" &&
-    window.location.hostname !== "127.0.0.1"
-  ) {
-    // URL oficial de Render para CHUMPATIN
-    return "https://chumpatin-dev.onrender.com/api";
-  }
-
-  // 3. Entorno local en PC
-  return "http://localhost:5000/api";
-};
-
-export const BASE_URL = getBaseUrl();
+// URL Oficial del Backend en la nube (100% online en Render como ProNatural)
+export const BASE_URL = (
+  import.meta.env.VITE_API_URL || "https://chumpatin-dev.onrender.com/api"
+).replace(/\/+$/, "");
 
 /**
  * Traduce y especifica cualquier error de red o de la API de forma humana y clara
