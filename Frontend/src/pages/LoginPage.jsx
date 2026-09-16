@@ -1,18 +1,22 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { api } from "../api/apiClient";
+import { api, BASE_URL } from "../api/apiClient";
 import {
   HiOutlineMail,
   HiOutlineLockClosed,
   HiOutlineUser,
   HiOutlineArrowRight,
   HiOutlineSparkles,
+  HiOutlineExclamation,
 } from "react-icons/hi";
 import toast from "react-hot-toast";
 
 export const LoginPage = () => {
   const { login, register, verifyRegistration } = useAuth();
   const [activeTab, setActiveTab] = useState("login"); // 'login' | 'register' | 'recovery'
+
+  // Alerta de error detallada
+  const [errorAlert, setErrorAlert] = useState("");
 
   // Campos Login (Vacíos sin prefijo)
   const [email, setEmail] = useState("");
@@ -37,10 +41,12 @@ export const LoginPage = () => {
   // Manejar Login
   const handleLogin = async (e) => {
     e.preventDefault();
+    setErrorAlert("");
     setLoading(true);
     try {
       await login(email, password);
     } catch (err) {
+      setErrorAlert(err.message || "Error al iniciar sesión");
       if (err?.data?.requireVerification) {
         setRegEmail(err.data.email || email);
         setRegStep(2);
@@ -55,6 +61,7 @@ export const LoginPage = () => {
   // Manejar Paso 1: Enviar Registro y Solicitar Código OTP
   const handleRegister = async (e) => {
     e.preventDefault();
+    setErrorAlert("");
     if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) return;
     setLoading(true);
     try {
@@ -62,7 +69,11 @@ export const LoginPage = () => {
       if (res && res.requireVerification) {
         setRegStep(2);
         if (res.previewCode) setPreviewOtp(res.previewCode);
+      } else if (res && !res.success && res.error) {
+        setErrorAlert(res.error);
       }
+    } catch (err) {
+      setErrorAlert(err.message || "Error al registrarse");
     } finally {
       setLoading(false);
     }
@@ -71,10 +82,16 @@ export const LoginPage = () => {
   // Manejar Paso 2: Verificar Código OTP de Registro
   const handleVerifyRegistration = async (e) => {
     e.preventDefault();
+    setErrorAlert("");
     if (!regOtpCode.trim()) return;
     setLoading(true);
     try {
-      await verifyRegistration(regEmail, regOtpCode.trim());
+      const success = await verifyRegistration(regEmail, regOtpCode.trim());
+      if (!success) {
+        setErrorAlert("El código ingresado es incorrecto o ha caducado.");
+      }
+    } catch (err) {
+      setErrorAlert(err.message || "Error al verificar código");
     } finally {
       setLoading(false);
     }
@@ -219,12 +236,25 @@ export const LoginPage = () => {
               <span className="text-slate-400 font-medium">Panel Administrativo</span>
               <button
                 type="button"
-                onClick={() => setActiveTab("recovery")}
+                onClick={() => {
+                  setActiveTab("recovery");
+                  setErrorAlert("");
+                }}
                 className="text-cyan-400 hover:text-cyan-300 font-semibold cursor-pointer"
               >
                 ¿Olvidaste tu clave?
               </button>
             </div>
+
+            {errorAlert && activeTab === "login" && (
+              <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-200 flex items-start gap-2.5">
+                <HiOutlineExclamation className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <strong className="block text-white font-bold mb-0.5">Aviso de Ingreso:</strong>
+                  <span className="leading-relaxed">{errorAlert}</span>
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"
@@ -301,6 +331,16 @@ export const LoginPage = () => {
               ✉️ Se te enviará un <strong className="text-cyan-400">código OTP de 6 dígitos</strong> a tu correo vía Mailjet para verificar tu identidad antes de entrar.
             </p>
 
+            {errorAlert && activeTab === "register" && regStep === 1 && (
+              <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-200 flex items-start gap-2.5">
+                <HiOutlineExclamation className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <strong className="block text-white font-bold mb-0.5">Error al Registrar:</strong>
+                  <span className="leading-relaxed">{errorAlert}</span>
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
@@ -366,6 +406,16 @@ export const LoginPage = () => {
                 Reenviar Código
               </button>
             </div>
+
+            {errorAlert && activeTab === "register" && regStep === 2 && (
+              <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-200 flex items-start gap-2.5">
+                <HiOutlineExclamation className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <strong className="block text-white font-bold mb-0.5">Error de Verificación:</strong>
+                  <span className="leading-relaxed">{errorAlert}</span>
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"

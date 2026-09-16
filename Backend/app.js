@@ -28,25 +28,14 @@ const apiLimiter = rateLimit({
 
 app.use("/api/", apiLimiter);
 
-// Configuración de CORS
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:3000",
-];
-
+// Configuración de CORS universal para Vercel, Localhost y móviles
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || origin.includes("localhost") || origin.includes("127.0.0.1")) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permitir para desarrollo flexible de red local
-      }
-    },
+    origin: true,
     credentials: true,
+    optionsSuccessStatus: 200, // Crítico para Safari / iOS WebKit en preflights OPTIONS
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With", "Accept"],
   })
 );
 
