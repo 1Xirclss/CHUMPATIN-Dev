@@ -35,6 +35,7 @@ export const LoginPage = () => {
   const [recoveryStep, setRecoveryStep] = useState(1);
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [recoveryPreviewCode, setRecoveryPreviewCode] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -51,14 +52,17 @@ export const LoginPage = () => {
         setRegEmail(err.data.email || email);
         setRegStep(2);
         setActiveTab("register");
-        if (err.data.previewCode) setPreviewOtp(err.data.previewCode);
+        if (err.data.previewCode) {
+          setPreviewOtp(err.data.previewCode);
+          setRegOtpCode(err.data.previewCode);
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Manejar Paso 1: Enviar Registro y Solicitar Código OTP
+  // Manejar Paso 1: Enviar Registro y Generar Código Único de Activación
   const handleRegister = async (e) => {
     e.preventDefault();
     setErrorAlert("");
@@ -68,7 +72,10 @@ export const LoginPage = () => {
       const res = await register(regName, regEmail, regPassword);
       if (res && res.requireVerification) {
         setRegStep(2);
-        if (res.previewCode) setPreviewOtp(res.previewCode);
+        if (res.previewCode) {
+          setPreviewOtp(res.previewCode);
+          setRegOtpCode(res.previewCode);
+        }
       } else if (res && !res.success && res.error) {
         setErrorAlert(res.error);
       }
@@ -100,44 +107,64 @@ export const LoginPage = () => {
   // Reenviar código OTP de registro
   const handleResendRegisterCode = async () => {
     try {
-      toast.loading("Reenviando código vía Mailjet...", { id: "resend" });
+      toast.loading("Generando nuevo código de activación...", { id: "resend" });
       const res = await api.resendVerification(regEmail);
       toast.success(res.message, { id: "resend" });
-      if (res.previewCode) setPreviewOtp(res.previewCode);
+      if (res.previewCode) {
+        setPreviewOtp(res.previewCode);
+        setRegOtpCode(res.previewCode);
+      }
     } catch (error) {
-      toast.error(error.message || "Error al reenviar código", { id: "resend" });
+      toast.error(error.message || "Error al generar código", { id: "resend" });
     }
   };
 
-  // Solicitar Código por Mailjet (Recuperación)
+  // Solicitar Código Único de Recuperación
   const handleRequestOtp = async (e) => {
     e.preventDefault();
-    if (!recoveryEmail) return;
+    if (!recoveryEmail.trim()) return;
+    setLoading(true);
+    setErrorAlert("");
     try {
-      toast.loading("Enviando código vía Mailjet...", { id: "otp" });
-      const res = await api.requestRecovery(recoveryEmail);
+      toast.loading("Generando código de seguridad...", { id: "otp" });
+      const res = await api.requestRecovery(recoveryEmail.trim());
       toast.success(res.message, { id: "otp" });
+      if (res.previewCode) {
+        setRecoveryPreviewCode(res.previewCode);
+        setOtpCode(res.previewCode);
+      }
       setRecoveryStep(2);
     } catch (error) {
-      toast.error(error.message || "Error al enviar código", { id: "otp" });
+      toast.error(error.message || "Error al solicitar código", { id: "otp" });
+      setErrorAlert(error.message || "Error al solicitar código");
+    } finally {
+      setLoading(false);
     }
   };
 
   // Cambiar Clave con Código
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    if (!otpCode.trim() || !newPassword.trim()) return;
+    setLoading(true);
     try {
       toast.loading("Actualizando contraseña...", { id: "reset" });
       const res = await api.resetPassword({
-        email: recoveryEmail,
-        code: otpCode,
+        email: recoveryEmail.trim(),
+        code: otpCode.trim(),
         newPassword,
       });
       toast.success(res.message, { id: "reset" });
       setActiveTab("login");
       setRecoveryStep(1);
+      setRecoveryPreviewCode(null);
+      setOtpCode("");
+      setNewPassword("");
     } catch (error) {
       toast.error(error.message || "Error al restablecer contraseña", { id: "reset" });
+      setErrorAlert(error.message || "Error al restablecer contraseña");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -428,16 +455,21 @@ export const LoginPage = () => {
           </form>
         )}
 
-        {/* Formulario 3: Recuperación de Contraseña (Mailjet) */}
+        {/* Formulario 3: Recuperación de Contraseña con Código Único */}
         {activeTab === "recovery" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                Recuperación vía Mailjet
+              <h2 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <HiOutlineKey className="w-4 h-4 text-cyan-400" />
+                <span>Recuperar Contraseña</span>
               </h2>
               <button
                 type="button"
-                onClick={() => setActiveTab("login")}
+                onClick={() => {
+                  setActiveTab("login");
+                  setRecoveryStep(1);
+                  setRecoveryPreviewCode(null);
+                }}
                 className="text-xs text-cyan-400 hover:text-cyan-300 cursor-pointer font-semibold"
               >
                 Volver al Login
@@ -447,7 +479,7 @@ export const LoginPage = () => {
             {recoveryStep === 1 ? (
               <form onSubmit={handleRequestOtp} className="space-y-4">
                 <p className="text-xs text-slate-400">
-                  Ingresa tu correo registrado para recibir un código OTP de 6 dígitos:
+                  Ingresa tu correo registrado para generar tu código único de seguridad:
                 </p>
                 <div className="relative flex items-center">
                   <div className="absolute left-3.5 pointer-events-none text-slate-400">
@@ -462,31 +494,67 @@ export const LoginPage = () => {
                     className="input-with-icon"
                   />
                 </div>
-                <button type="submit" className="btn-neon w-full py-3 text-xs font-bold">
-                  Enviar Código OTP
+
+                {errorAlert && activeTab === "recovery" && (
+                  <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-200">
+                    {errorAlert}
+                  </div>
+                )}
+
+                <button type="submit" disabled={loading} className="btn-neon w-full py-3 text-xs font-bold">
+                  {loading ? "Generando Código..." : "Generar Código de Seguridad"}
                 </button>
               </form>
             ) : (
               <form onSubmit={handleResetPassword} className="space-y-4">
-                <p className="text-xs text-slate-400">
-                  Ingresa el código numérico recibido en tu correo y tu nueva contraseña:
-                </p>
-                <input
-                  type="text"
-                  required
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="Código de 6 dígitos"
-                  className="input-party text-sm font-mono-code text-center tracking-widest font-bold"
-                />
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Nueva contraseña"
-                  className="input-party text-sm"
-                />
+                <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-center space-y-1">
+                  <p className="text-[11px] text-cyan-300 font-semibold uppercase tracking-wider">
+                    🔐 Código de Recuperación Generado:
+                  </p>
+                  <p className="text-xl font-mono-code font-black text-white tracking-[0.3em]">
+                    {recoveryPreviewCode || otpCode}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    Ingresa tu nueva contraseña para actualizarla al instante:
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Código de Seguridad (6 Dígitos)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Código de 6 dígitos"
+                    className="input-party text-sm font-mono-code text-center tracking-widest font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Nueva Contraseña
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Escribe tu nueva contraseña"
+                    className="input-party text-sm"
+                  />
+                </div>
+
+                {errorAlert && activeTab === "recovery" && (
+                  <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-200">
+                    {errorAlert}
+                  </div>
+                )}
+
                 <div className="flex gap-2 pt-2">
                   <button
                     type="button"
@@ -495,8 +563,8 @@ export const LoginPage = () => {
                   >
                     Atrás
                   </button>
-                  <button type="submit" className="btn-neon flex-1 text-xs">
-                    Guardar Nueva Clave
+                  <button type="submit" disabled={loading} className="btn-neon flex-1 text-xs">
+                    {loading ? "Guardando..." : "Guardar Nueva Clave"}
                   </button>
                 </div>
               </form>
