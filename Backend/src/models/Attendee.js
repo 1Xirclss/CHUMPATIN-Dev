@@ -14,10 +14,16 @@ const attendeeSchema = new mongoose.Schema(
       default: "",
       index: true,
     },
+    category: {
+      type: String,
+      enum: ["PROMO", "GENERAL"],
+      default: "PROMO",
+      index: true,
+    },
     schoolPromo: {
       type: String,
       trim: true,
-      default: "", // Ej: "Champagnat Promo 2026", "Liceo Salvadoreño"
+      default: "", // Ej: "Champagnat Promo 2026", "Liceo Salvadoreño" o "Público General"
     },
     notes: {
       type: String,

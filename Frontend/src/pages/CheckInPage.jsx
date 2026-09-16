@@ -215,9 +215,13 @@ export const CheckInPage = () => {
                     {person.phone && (
                       <span className="font-mono-code text-slate-300">{person.phone}</span>
                     )}
-                    {person.schoolPromo && (
-                      <span className="text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded">
-                        {person.schoolPromo}
+                    {person.category === "GENERAL" ? (
+                      <span className="text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded font-semibold inline-flex items-center gap-1">
+                        👥 General
+                      </span>
+                    ) : (
+                      <span className="text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded font-semibold inline-flex items-center gap-1">
+                        🎓 {person.schoolPromo || "Promo 2026"}
                       </span>
                     )}
                     <span className="text-slate-300">

@@ -85,9 +85,13 @@ export const SalesTable = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                {sale.schoolPromo && (
-                  <span className="text-[11px] text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded border border-purple-500/25">
-                    {sale.schoolPromo}
+                {sale.category === "GENERAL" ? (
+                  <span className="text-[11px] text-cyan-300 bg-cyan-500/15 px-2 py-0.5 rounded border border-cyan-500/25 font-semibold inline-flex items-center gap-1">
+                    👥 General
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded border border-purple-500/25 font-semibold inline-flex items-center gap-1">
+                    🎓 {sale.schoolPromo || "Promo 2026"}
                   </span>
                 )}
                 <span className="text-[11px] text-slate-400 bg-white/5 px-2 py-0.5 rounded">
@@ -113,40 +117,35 @@ export const SalesTable = ({
                 <button
                   onClick={() => onToggleStatus(sale._id)}
                   className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                    isPaid ? "badge-cancelado" : "badge-pendiente"
+                    isPaid
+                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                      : "bg-amber-500/15 text-amber-400 border-amber-500/30"
                   }`}
                 >
-                  {isPaid ? "CANCELADO" : "PENDIENTE"}
+                  {sale.paymentStatus}
                 </button>
 
-                <div className="flex items-center gap-2">
-                  {isDelivered ? (
-                    <span className="text-[11px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 rounded-lg">
-                      Pulsera OK
-                    </span>
-                  ) : (
+                <div className="flex items-center gap-1">
+                  {!isDelivered && isPaid && (
                     <button
                       onClick={(e) => triggerWristbandCelebration(e, sale)}
-                      disabled={!isPaid}
-                      className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
-                        isPaid
-                          ? "bg-cyan-500 text-black shadow-sm"
-                          : "bg-white/5 text-slate-500 cursor-not-allowed"
-                      }`}
+                      className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-xs font-bold flex items-center gap-1 px-2 border border-emerald-500/30"
                     >
-                      Pulsera
+                      <HiOutlineSparkles className="w-3.5 h-3.5" />
+                      <span>Pulsera</span>
                     </button>
                   )}
-
                   <button
                     onClick={() => onEdit(sale)}
-                    className="p-1.5 text-slate-400 hover:text-white bg-[#141724] rounded-lg border border-white/5"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+                    title="Editar venta"
                   >
                     <HiOutlinePencilAlt className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => onDelete(sale)}
-                    className="p-1.5 text-rose-400 hover:bg-rose-500/10 bg-[#141724] rounded-lg border border-white/5"
+                    className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                    title="Eliminar venta"
                   >
                     <HiOutlineTrash className="w-4 h-4" />
                   </button>
@@ -165,7 +164,7 @@ export const SalesTable = ({
               <tr className="border-b border-white/[0.08] bg-[#0c0e16] text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
                 <th className="py-3.5 px-4"># Ticket</th>
                 <th className="py-3.5 px-4">Asistente</th>
-                <th className="py-3.5 px-4">Colegio / Promo</th>
+                <th className="py-3.5 px-4">Categoría / Promo</th>
                 <th className="py-3.5 px-4">Entrada</th>
                 <th className="py-3.5 px-4">Método</th>
                 <th className="py-3.5 px-4">Monto</th>
@@ -191,12 +190,14 @@ export const SalesTable = ({
                       )}
                     </td>
                     <td className="py-3.5 px-4">
-                      {sale.schoolPromo ? (
-                        <span className="text-xs text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">
-                          {sale.schoolPromo}
+                      {sale.category === "GENERAL" ? (
+                        <span className="text-xs text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded font-semibold inline-flex items-center gap-1">
+                          👥 General
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-500">-</span>
+                        <span className="text-xs text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded font-semibold inline-flex items-center gap-1">
+                          🎓 {sale.schoolPromo || "Promo 2026"}
+                        </span>
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-xs text-slate-300">

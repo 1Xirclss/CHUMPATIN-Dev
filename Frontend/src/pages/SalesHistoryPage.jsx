@@ -9,6 +9,7 @@ export const SalesHistoryPage = ({ onOpenSaleModal }) => {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("");
   const [wristbandFilter, setWristbandFilter] = useState("");
@@ -18,6 +19,7 @@ export const SalesHistoryPage = ({ onOpenSaleModal }) => {
       setLoading(true);
       const res = await api.getSales({
         search,
+        category: categoryFilter,
         paymentMethod: paymentMethodFilter,
         paymentStatus: paymentStatusFilter,
         wristbandDelivered: wristbandFilter,
@@ -46,7 +48,7 @@ export const SalesHistoryPage = ({ onOpenSaleModal }) => {
       clearTimeout(timer);
       window.removeEventListener("sale_updated", handleUpdate);
     };
-  }, [search, paymentMethodFilter, paymentStatusFilter, wristbandFilter]);
+  }, [search, categoryFilter, paymentMethodFilter, paymentStatusFilter, wristbandFilter]);
 
   const handleToggleStatus = async (id) => {
     try {
@@ -173,6 +175,8 @@ export const SalesHistoryPage = ({ onOpenSaleModal }) => {
         <QuickSearch
           search={search}
           setSearch={setSearch}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
           paymentMethodFilter={paymentMethodFilter}
           setPaymentMethodFilter={setPaymentMethodFilter}
           paymentStatusFilter={paymentStatusFilter}

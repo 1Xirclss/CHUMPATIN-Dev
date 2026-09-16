@@ -4,6 +4,8 @@ import { HiOutlineSearch, HiOutlineX } from "react-icons/hi";
 export const QuickSearch = ({
   search,
   setSearch,
+  categoryFilter = "",
+  setCategoryFilter = () => {},
   paymentMethodFilter,
   setPaymentMethodFilter,
   paymentStatusFilter,
@@ -21,7 +23,7 @@ export const QuickSearch = ({
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre, teléfono, número de ticket o referencia..."
+          placeholder="Buscar por nombre, colegio, teléfono o # de ticket..."
           className="input-with-icon pr-10 text-sm"
         />
         {search && (
@@ -36,7 +38,42 @@ export const QuickSearch = ({
 
       {/* Filtros Rápidos (Píldoras) */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
+        {/* Filtro Tipo: Promo vs General */}
         <span className="text-slate-500 font-semibold uppercase text-[10px] tracking-wider mr-1">
+          Tipo:
+        </span>
+        <button
+          onClick={() => setCategoryFilter("")}
+          className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+            categoryFilter === ""
+              ? "bg-white text-black font-bold border-white"
+              : "bg-[#141722] text-slate-300 border-white/[0.08] hover:border-white/20"
+          }`}
+        >
+          Todos
+        </button>
+        <button
+          onClick={() => setCategoryFilter("PROMO")}
+          className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+            categoryFilter === "PROMO"
+              ? "bg-purple-600 text-white font-bold border-purple-500 shadow-sm shadow-purple-600/30"
+              : "bg-[#141722] text-purple-300 border-purple-500/30 hover:border-purple-500/60"
+          }`}
+        >
+          🎓 Promo 2026
+        </button>
+        <button
+          onClick={() => setCategoryFilter("GENERAL")}
+          className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+            categoryFilter === "GENERAL"
+              ? "bg-cyan-500 text-black font-bold border-cyan-400 shadow-sm shadow-cyan-500/30"
+              : "bg-[#141722] text-cyan-300 border-cyan-500/30 hover:border-cyan-500/60"
+          }`}
+        >
+          👥 General
+        </button>
+
+        <span className="text-slate-500 font-semibold uppercase text-[10px] tracking-wider ml-2 mr-1">
           Método:
         </span>
         <button

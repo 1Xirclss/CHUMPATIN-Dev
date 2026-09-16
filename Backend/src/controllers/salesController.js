@@ -26,6 +26,7 @@ export const getSales = async (req, res) => {
   try {
     const {
       search = "",
+      category,
       paymentMethod,
       paymentStatus,
       wristbandDelivered,
@@ -49,6 +50,10 @@ export const getSales = async (req, res) => {
       if (!isNaN(search.trim())) {
         query.$or.push({ ticketNumber: Number(search.trim()) });
       }
+    }
+
+    if (category && ["PROMO", "GENERAL"].includes(category.toUpperCase())) {
+      query.category = category.toUpperCase();
     }
 
     if (paymentMethod && ["EFECTIVO", "TRANSFERENCIA"].includes(paymentMethod.toUpperCase())) {
@@ -115,6 +120,7 @@ export const createSale = async (req, res) => {
     const {
       customerName,
       phone = "",
+      category = "PROMO",
       schoolPromo = "",
       ticketType = "Promo 2026 - Preventa ($15)",
       quantity = 1,
@@ -146,6 +152,10 @@ export const createSale = async (req, res) => {
     }
 
     const cleanPhone = formatSVPhone(phone);
+    const finalCategory = category === "GENERAL" || (!category && ticketType.toLowerCase().includes("general")) ? "GENERAL" : "PROMO";
+    const finalSchoolPromo = finalCategory === "GENERAL"
+      ? (schoolPromo && schoolPromo.trim() ? schoolPromo.trim() : "General")
+      : (schoolPromo ? schoolPromo.trim() : "Promo 2026");
 
     // 1. Colección ATTENDEES: Buscar o crear el asistente
     let attendee = await Attendee.findOne({
@@ -156,12 +166,14 @@ export const createSale = async (req, res) => {
       attendee = await Attendee.create({
         fullName: customerName.trim(),
         phone: cleanPhone,
-        schoolPromo: schoolPromo ? schoolPromo.trim() : "",
+        category: finalCategory,
+        schoolPromo: finalSchoolPromo,
         notes: notes.trim(),
       });
     } else {
       if (cleanPhone && !attendee.phone) attendee.phone = cleanPhone;
-      if (schoolPromo && !attendee.schoolPromo) attendee.schoolPromo = schoolPromo.trim();
+      attendee.category = finalCategory;
+      if (finalSchoolPromo && !attendee.schoolPromo) attendee.schoolPromo = finalSchoolPromo;
       await attendee.save();
     }
 
@@ -179,7 +191,8 @@ export const createSale = async (req, res) => {
       attendee: attendee._id,
       customerName: attendee.fullName,
       phone: attendee.phone,
-      schoolPromo: attendee.schoolPromo,
+      category: finalCategory,
+      schoolPromo: finalSchoolPromo,
       ticketTypeRef: ticketTypeDoc ? ticketTypeDoc._id : null,
       ticketType: ticketType.trim(),
       quantity: Number(quantity) || 1,
@@ -230,6 +243,7 @@ export const updateSale = async (req, res) => {
     const {
       customerName,
       phone,
+      category,
       schoolPromo,
       ticketType,
       quantity,
@@ -244,6 +258,9 @@ export const updateSale = async (req, res) => {
 
     if (customerName) sale.customerName = customerName.trim();
     if (phone !== undefined) sale.phone = formatSVPhone(phone);
+    if (category !== undefined && ["PROMO", "GENERAL"].includes(category.toUpperCase())) {
+      sale.category = category.toUpperCase();
+    }
     if (schoolPromo !== undefined) sale.schoolPromo = schoolPromo.trim();
     if (ticketType) sale.ticketType = ticketType.trim();
     if (quantity !== undefined) sale.quantity = Number(quantity);
@@ -262,6 +279,7 @@ export const updateSale = async (req, res) => {
       await Attendee.findByIdAndUpdate(sale.attendee, {
         fullName: sale.customerName,
         phone: sale.phone,
+        category: sale.category,
         schoolPromo: sale.schoolPromo,
       });
     }

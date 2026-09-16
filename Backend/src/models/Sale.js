@@ -27,6 +27,12 @@ const saleSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    category: {
+      type: String,
+      enum: ["PROMO", "GENERAL"],
+      default: "PROMO",
+      index: true,
+    },
     schoolPromo: {
       type: String,
       trim: true,

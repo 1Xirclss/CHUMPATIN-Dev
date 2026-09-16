@@ -14,6 +14,7 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
   const [formData, setFormData] = useState({
     customerName: "",
     phone: "",
+    category: "PROMO", // "PROMO" | "GENERAL"
     schoolPromo: "",
     ticketType: "Promo 2026 - Preventa ($15)",
     quantity: 1,
@@ -58,10 +59,12 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
 
   useEffect(() => {
     if (saleToEdit) {
+      const editCategory = saleToEdit.category || (saleToEdit.ticketType?.toLowerCase().includes("general") ? "GENERAL" : "PROMO");
       setFormData({
         customerName: saleToEdit.customerName || "",
         phone: formatElSalvadorPhone(saleToEdit.phone || ""),
-        schoolPromo: saleToEdit.schoolPromo || "",
+        category: editCategory,
+        schoolPromo: saleToEdit.schoolPromo || (editCategory === "GENERAL" ? "General" : ""),
         ticketType: saleToEdit.ticketType || "Promo 2026 - Preventa ($15)",
         quantity: saleToEdit.quantity || 1,
         unitPrice: saleToEdit.unitPrice || 15,
@@ -78,6 +81,7 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
         ...prev,
         customerName: "",
         phone: "",
+        category: "PROMO",
         schoolPromo: "",
         transferReference: "",
         notes: "",
@@ -85,6 +89,27 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
       }));
     }
   }, [saleToEdit, isOpen]);
+
+  const handleCategoryChange = (newCategory) => {
+    // Buscar la tarifa por defecto para la categoría seleccionada
+    const matchingTier = ticketTiers.find((t) =>
+      newCategory === "GENERAL"
+        ? t.name.toLowerCase().includes("general")
+        : !t.name.toLowerCase().includes("general")
+    ) || ticketTiers[0];
+
+    const newTicketType = `${matchingTier.name} ($${matchingTier.price})`;
+    const newPrice = matchingTier.price;
+
+    setFormData((prev) => ({
+      ...prev,
+      category: newCategory,
+      schoolPromo: newCategory === "GENERAL" ? "General" : (prev.schoolPromo === "General" ? "" : prev.schoolPromo),
+      ticketType: newTicketType,
+      unitPrice: newPrice,
+      amount: newPrice * prev.quantity,
+    }));
+  };
 
   const handleTicketTypeChange = (e) => {
     const selectedType = e.target.value;
@@ -160,6 +185,40 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
             />
           </div>
 
+          {/* Selector de Categoría: Promo vs General */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              Tipo de Asistente *
+            </label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleCategoryChange("PROMO")}
+                className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  formData.category === "PROMO"
+                    ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-600/30 ring-1 ring-purple-400"
+                    : "bg-[#141724] text-slate-400 border-white/10 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                <span className="text-base">🎓</span>
+                <span>Es Promo 2026</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleCategoryChange("GENERAL")}
+                className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  formData.category === "GENERAL"
+                    ? "bg-cyan-500 text-black border-cyan-400 shadow-md shadow-cyan-500/30 ring-1 ring-cyan-400"
+                    : "bg-[#141724] text-slate-400 border-white/10 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                <span className="text-base">👥</span>
+                <span>General (No Promo)</span>
+              </button>
+            </div>
+          </div>
+
           {/* Teléfono y Colegio / Promo */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
@@ -180,13 +239,13 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Colegio / Senior Promo
+                {formData.category === "GENERAL" ? "Categoría / Detalle" : "Colegio / Senior Promo"}
               </label>
               <input
                 type="text"
                 value={formData.schoolPromo}
                 onChange={(e) => setFormData({ ...formData, schoolPromo: e.target.value })}
-                placeholder="Ej: Promo 2026 Champagnat"
+                placeholder={formData.category === "GENERAL" ? "General" : "Ej: Promo 2026 Champagnat"}
                 className="input-party text-sm"
               />
             </div>
