@@ -2,16 +2,26 @@ import Mailjet from "node-mailjet";
 import nodemailer from "nodemailer";
 import { config } from "../../config.js";
 
+// Conexión con Mailjet idéntica a ProNatural
 let mailjetClient = null;
 
-if (config.mailjet.apiKey && config.mailjet.secretKey && !config.mailjet.apiKey.startsWith("tu_") && !config.mailjet.apiKey.startsWith("demo")) {
-  mailjetClient = new Mailjet({
-    apiKey: config.mailjet.apiKey,
-    apiSecret: config.mailjet.secretKey,
-  });
-}
+const getMailjetClient = () => {
+  if (
+    !mailjetClient &&
+    config.mailjet.apiKey &&
+    config.mailjet.secretKey &&
+    config.mailjet.apiKey !== "tu_api_key_aqui" &&
+    !config.mailjet.secretKey.startsWith("tu_")
+  ) {
+    mailjetClient = Mailjet.apiConnect(
+      config.mailjet.apiKey,
+      config.mailjet.secretKey
+    );
+  }
+  return mailjetClient;
+};
 
-// Configuración de Nodemailer como transporte directo con timeout estricto
+// Configuración de Nodemailer como transporte directo de respaldo
 const transporter = nodemailer.createTransport({
   service: "gmail",
   connectionTimeout: 4000,
@@ -24,35 +34,57 @@ const transporter = nodemailer.createTransport({
 });
 
 /**
- * Enviar correo administrativo utilizando Mailjet o Nodemailer Gmail
+ * Enviar correo administrativo utilizando Mailjet (con fallback de Nodemailer y registro en consola)
  */
-export const sendEmail = async ({ toEmail, toName, subject, htmlContent, textContent }) => {
-  // 1. Intentar con Mailjet si hay llaves válidas configuradas
-  if (mailjetClient) {
+export const sendEmail = async (params, subjectParam, htmlParam) => {
+  // Soporta tanto objeto ({ toEmail, toName, subject, htmlContent }) como parámetros sueltos (to, subject, html) estilo ProNatural
+  let toEmail, toName, subject, htmlContent, textContent;
+  if (typeof params === "string") {
+    toEmail = params;
+    subject = subjectParam;
+    htmlContent = htmlParam;
+    toName = "Usuario";
+  } else {
+    toEmail = params.toEmail;
+    toName = params.toName || "Usuario CHUMPATIN";
+    subject = params.subject;
+    htmlContent = params.htmlContent;
+    textContent = params.textContent;
+  }
+
+  // 1. Intentar con Mailjet vía API HTTP (Recomendado para Render y producción)
+  const client = getMailjetClient();
+  if (client) {
     try {
-      const result = await mailjetClient.post("send", { version: "v3.1" }).request({
-        Messages: [
+      const messagePayload = {
+        From: {
+          Email: config.mailjet.fromEmail || "mam270508@gmail.com",
+          Name: config.mailjet.fromName || "CHUMPATIN Oficial",
+        },
+        To: [
           {
-            From: {
-              Email: config.mailjet.fromEmail,
-              Name: config.mailjet.fromName,
-            },
-            To: [
-              {
-                Email: toEmail,
-                Name: toName || "Usuario CHUMPATIN",
-              },
-            ],
-            Subject: subject,
-            TextPart: textContent || "",
-            HTMLPart: htmlContent,
+            Email: toEmail,
+            Name: toName,
           },
         ],
-      });
-      console.log(`✉️ [Mailjet] Correo enviado exitosamente a ${toEmail}`);
+        Subject: subject,
+        HTMLPart: htmlContent,
+      };
+
+      if (textContent) {
+        messagePayload.TextPart = textContent;
+      }
+
+      const result = await client
+        .post("send", { version: "v3.1" })
+        .request({
+          Messages: [messagePayload],
+        });
+
+      console.log(`✉️ [MAILJET ÉXITO] Correo enviado exitosamente a ${toEmail}`);
       return { success: true, provider: "mailjet", data: result.body };
     } catch (error) {
-      console.warn("⚠️ Error en Mailjet, probando transporte Nodemailer:", error.message);
+      console.warn(`⚠️ [MAILJET AVISO] Error al enviar con Mailjet (${error.message}), intentando respaldo...`);
     }
   }
 
@@ -83,33 +115,30 @@ export const sendEmail = async ({ toEmail, toName, subject, htmlContent, textCon
  */
 export const sendOtpEmail = async (email, code, name = "Administrador") => {
   const htmlContent = `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #0d0e15; color: #ffffff; padding: 30px; border-radius: 12px; max-width: 520px; margin: 0 auto; border: 1px solid #232738;">
-      <div style="text-align: center; margin-bottom: 25px;">
-        <h1 style="color: #ffffff; letter-spacing: 2px; margin: 0; font-size: 26px;">CHUMPATIN ®</h1>
-        <p style="color: #00f2fe; margin-top: 5px; font-weight: bold; font-size: 13px; letter-spacing: 1px;">LAST DANCE 2026</p>
+    <div style="font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f9; padding: 25px; border: 1px solid #ddd; border-radius: 12px; max-width: 550px; margin: 0 auto;">
+      <h1 style="color: #2c3e50; font-size: 24px; margin-bottom: 5px;">CHUMPATIN XXL 2026</h1>
+      <p style="color: #0088cc; font-weight: bold; margin-top: 0; font-size: 14px;">SENIOR SEND-OFF PROMO</p>
+      <p style="font-size: 16px; color: #555; line-height: 1.5;">
+        Hola <strong>${name}</strong>, usa el siguiente código de verificación de 6 dígitos para activar tu cuenta en el sistema de ventas:
+      </p>
+      <div style="display: inline-block; padding: 14px 28px; margin: 20px 0; font-size: 28px; font-weight: bold; color: #ffffff; background-color: #0088cc; border-radius: 8px; letter-spacing: 6px;">
+        ${code}
       </div>
-      <div style="background-color: #161824; padding: 25px; border-radius: 10px; border: 1px solid #2a2e45;">
-        <h2 style="font-size: 18px; margin-top: 0; color: #e2e8f0;">Código de Verificación</h2>
-        <p style="color: #94a3b8; font-size: 14px; line-height: 1.5;">
-          Hola <strong>${name}</strong>, usa el siguiente código para iniciar sesión o restablecer tu contraseña en el sistema de ventas:
-        </p>
-        <div style="text-align: center; margin: 25px 0;">
-          <span style="display: inline-block; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #090a0f; font-size: 28px; font-weight: 800; letter-spacing: 6px; padding: 12px 30px; border-radius: 8px;">
-            ${code}
-          </span>
-        </div>
-        <p style="color: #64748b; font-size: 12px; margin-bottom: 0;">
-          Este código expirará en 15 minutos. Si tú no solicitaste este acceso, puedes ignorar este mensaje.
-        </p>
-      </div>
+      <p style="font-size: 14px; color: #777; line-height: 1.5;">
+        Este código es válido durante los próximos <strong>15 minutos</strong>. Si no solicitaste este código, puedes ignorar este mensaje.
+      </p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+      <footer style="font-size: 12px; color: #aaa;">
+        CHUMPATIN XXL &bull; Sistema Oficial de Ventas y Accesos 2026
+      </footer>
     </div>
   `;
 
   return await sendEmail({
     toEmail: email,
     toName: name,
-    subject: `🔐 Tu código de acceso CHUMPATIN: ${code}`,
+    subject: `Código de Verificación: ${code} - CHUMPATIN XXL`,
     htmlContent,
-    textContent: `Tu código de verificación CHUMPATIN es: ${code}`,
+    textContent: `Tu código de verificación para CHUMPATIN XXL es: ${code}. Válido por 15 minutos.`,
   });
 };
