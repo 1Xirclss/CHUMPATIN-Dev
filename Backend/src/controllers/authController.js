@@ -13,7 +13,7 @@ const generateToken = (user) => {
   );
 };
 
-// Registro de nuevo Administrador / Staff
+// Registro de nuevo Administrador / Staff con verificación OTP
 export const register = async (req, res) => {
   try {
     const { name, email, password, role = "admin" } = req.body;
@@ -27,37 +27,147 @@ export const register = async (req, res) => {
 
     const cleanEmail = email.toLowerCase().trim();
     const existing = await User.findOne({ email: cleanEmail });
-    if (existing) {
+    if (existing && existing.isVerified) {
       return res.status(400).json({
         success: false,
-        message: "Este correo ya está registrado en el sistema.",
+        message: "Este correo ya está registrado y verificado en el sistema.",
       });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await User.create({
-      name: name.trim(),
-      email: cleanEmail,
-      password: hashedPassword,
-      role: role || "admin",
-    });
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const codeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
 
-    const token = generateToken(newUser);
+    let user = existing;
+    if (user) {
+      user.name = name.trim();
+      user.password = hashedPassword;
+      user.role = role || "admin";
+      user.verificationCode = code;
+      user.verificationCodeExpires = codeExpires;
+      user.isVerified = false;
+      await user.save();
+    } else {
+      user = await User.create({
+        name: name.trim(),
+        email: cleanEmail,
+        password: hashedPassword,
+        role: role || "admin",
+        isVerified: false,
+        verificationCode: code,
+        verificationCodeExpires: codeExpires,
+      });
+    }
+
+    // Enviar código de verificación vía Mailjet / Nodemailer
+    await sendOtpEmail(user.email, code, user.name);
 
     return res.status(201).json({
       success: true,
-      message: `¡Usuario ${newUser.name} registrado exitosamente como Administrador!`,
-      token,
-      user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-      },
+      requireVerification: true,
+      email: user.email,
+      message: `Código de verificación de 6 dígitos enviado a ${user.email}. Por favor ingrésalo para activar tu cuenta.`,
+      previewCode: process.env.NODE_ENV !== "production" ? code : undefined,
     });
   } catch (error) {
     console.error("Error al registrar usuario:", error);
     return res.status(500).json({ success: false, message: "Error al registrar usuario" });
+  }
+};
+
+// Verificar código de registro y activar cuenta
+export const verifyRegistration = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({
+        success: false,
+        message: "Correo y código de verificación son requeridos.",
+      });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanCode = String(code).trim();
+
+    const user = await User.findOne({
+      email: cleanEmail,
+      verificationCode: cleanCode,
+      verificationCodeExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Código de verificación incorrecto o expirado. Por favor solicita uno nuevo.",
+      });
+    }
+
+    user.isVerified = true;
+    user.verificationCode = null;
+    user.verificationCodeExpires = null;
+    await user.save();
+
+    const token = generateToken(user);
+
+    // Configurar cookie httpOnly
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+      success: true,
+      message: `¡Cuenta verificada exitosamente! Bienvenido, ${user.name}.`,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Error al verificar registro:", error);
+    return res.status(500).json({ success: false, message: "Error al verificar código" });
+  }
+};
+
+// Reenviar código de verificación
+export const resendVerificationCode = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "El correo es obligatorio." });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Usuario no encontrado." });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ success: false, message: "Esta cuenta ya está verificada." });
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    user.verificationCode = code;
+    user.verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+
+    await sendOtpEmail(user.email, code, user.name);
+
+    return res.json({
+      success: true,
+      message: `Nuevo código de verificación enviado a ${user.email}`,
+      previewCode: process.env.NODE_ENV !== "production" ? code : undefined,
+    });
+  } catch (error) {
+    console.error("Error al reenviar código:", error);
+    return res.status(500).json({ success: false, message: "Error al reenviar código" });
   }
 };
 
@@ -86,6 +196,23 @@ export const login = async (req, res) => {
       return res.status(401).json({
         success: false,
         message: "Credenciales inválidas. Verifica tu correo o contraseña.",
+      });
+    }
+
+    // Verificar si la cuenta fue validada con código Mailjet
+    if (!user.isVerified) {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      user.verificationCode = code;
+      user.verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000);
+      await user.save();
+      await sendOtpEmail(user.email, code, user.name);
+
+      return res.status(403).json({
+        success: false,
+        requireVerification: true,
+        email: user.email,
+        message: "Tu cuenta no ha sido verificada. Hemos enviado un código OTP a tu correo para activarla.",
+        previewCode: process.env.NODE_ENV !== "production" ? code : undefined,
       });
     }
 

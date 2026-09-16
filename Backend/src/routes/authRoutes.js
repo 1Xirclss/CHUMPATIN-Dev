@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
   register,
+  verifyRegistration,
+  resendVerificationCode,
   login,
   logout,
   getProfile,
@@ -12,6 +14,8 @@ import { verifyToken } from "../middlewares/authMiddleware.js";
 const router = Router();
 
 router.post("/register", register);
+router.post("/verify-registration", verifyRegistration);
+router.post("/resend-verification", resendVerificationCode);
 router.post("/login", login);
 router.post("/logout", logout);
 router.get("/profile", verifyToken, getProfile);

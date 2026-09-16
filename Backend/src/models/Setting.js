@@ -66,9 +66,10 @@ const settingSchema = new mongoose.Schema(
       default: 400,
     },
     bankTransferInfo: {
-      bankName: { type: String, default: "Banco Agrícola / BAC / Cuscatlán / Chivo Wallet" },
-      accountNumber: { type: String, default: "" },
-      accountHolder: { type: String, default: "CHUMPATIN EVENTOS" },
+      bankName: { type: String, default: "Banco Promerica" },
+      accountType: { type: String, default: "CUENTA DE AHORRO" },
+      accountNumber: { type: String, default: "20000044022070" },
+      accountHolder: { type: String, default: "Emanuel Alexander Benitez vides" },
       whatsappSupport: { type: String, default: "" },
     },
   },

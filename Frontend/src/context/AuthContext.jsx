@@ -33,16 +33,30 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.register({ name, email, password });
       if (res.success) {
+        toast.success(res.message, { duration: 6000 });
+        return { success: true, requireVerification: res.requireVerification, email: res.email, previewCode: res.previewCode };
+      }
+      return { success: false };
+    } catch (error) {
+      toast.error(error.message || "Error al iniciar registro");
+      return { success: false, error: error.message };
+    }
+  };
+
+  const verifyRegistration = async (email, code) => {
+    try {
+      const res = await api.verifyRegistration({ email, code });
+      if (res.success) {
         localStorage.setItem("chumpatin_token", res.token);
         localStorage.setItem("chumpatin_user", JSON.stringify(res.user));
         setToken(res.token);
         setUser(res.user);
-        toast.success(`¡Cuenta creada con éxito! Bienvenido, ${res.user.name}`);
+        toast.success(`¡Bienvenido Administrador, ${res.user.name}!`);
         return true;
       }
       return false;
     } catch (error) {
-      toast.error(error.message || "Error al crear cuenta");
+      toast.error(error.message || "Error al verificar código");
       return false;
     }
   };
@@ -74,7 +88,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, verifyRegistration, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

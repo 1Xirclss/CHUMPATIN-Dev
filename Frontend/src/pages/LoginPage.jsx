@@ -11,17 +11,20 @@ import {
 import toast from "react-hot-toast";
 
 export const LoginPage = () => {
-  const { login, register } = useAuth();
+  const { login, register, verifyRegistration } = useAuth();
   const [activeTab, setActiveTab] = useState("login"); // 'login' | 'register' | 'recovery'
 
   // Campos Login (Vacíos sin prefijo)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Campos Registro
+  // Campos Registro con verificación OTP Mailjet
+  const [regStep, setRegStep] = useState(1); // 1: Datos, 2: Código OTP
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [regOtpCode, setRegOtpCode] = useState("");
+  const [previewOtp, setPreviewOtp] = useState(null);
 
   // Campos Recuperación
   const [recoveryEmail, setRecoveryEmail] = useState("");
@@ -37,24 +40,59 @@ export const LoginPage = () => {
     setLoading(true);
     try {
       await login(email, password);
+    } catch (err) {
+      if (err?.data?.requireVerification) {
+        setRegEmail(err.data.email || email);
+        setRegStep(2);
+        setActiveTab("register");
+        if (err.data.previewCode) setPreviewOtp(err.data.previewCode);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Manejar Registro
+  // Manejar Paso 1: Enviar Registro y Solicitar Código OTP
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) return;
     setLoading(true);
     try {
-      await register(regName, regEmail, regPassword);
+      const res = await register(regName, regEmail, regPassword);
+      if (res && res.requireVerification) {
+        setRegStep(2);
+        if (res.previewCode) setPreviewOtp(res.previewCode);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Solicitar Código por Mailjet
+  // Manejar Paso 2: Verificar Código OTP de Registro
+  const handleVerifyRegistration = async (e) => {
+    e.preventDefault();
+    if (!regOtpCode.trim()) return;
+    setLoading(true);
+    try {
+      await verifyRegistration(regEmail, regOtpCode.trim());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reenviar código OTP de registro
+  const handleResendRegisterCode = async () => {
+    try {
+      toast.loading("Reenviando código vía Mailjet...", { id: "resend" });
+      const res = await api.resendVerification(regEmail);
+      toast.success(res.message, { id: "resend" });
+      if (res.previewCode) setPreviewOtp(res.previewCode);
+    } catch (error) {
+      toast.error(error.message || "Error al reenviar código", { id: "resend" });
+    }
+  };
+
+  // Solicitar Código por Mailjet (Recuperación)
   const handleRequestOtp = async (e) => {
     e.preventDefault();
     if (!recoveryEmail) return;
@@ -111,7 +149,10 @@ export const LoginPage = () => {
         <div className="flex rounded-xl bg-[#090a0f] p-1 border border-white/[0.08] mb-6">
           <button
             type="button"
-            onClick={() => setActiveTab("login")}
+            onClick={() => {
+              setActiveTab("login");
+              setRegStep(1);
+            }}
             className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
               activeTab === "login"
                 ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20"
@@ -196,8 +237,8 @@ export const LoginPage = () => {
           </form>
         )}
 
-        {/* Formulario 2: Registrar Nuevo Administrador */}
-        {activeTab === "register" && (
+        {/* Formulario 2: Registrar Nuevo Administrador con Verificación OTP Mailjet */}
+        {activeTab === "register" && regStep === 1 && (
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
@@ -220,7 +261,7 @@ export const LoginPage = () => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                Correo Electrónico
+                Correo Electrónico (Para recibir código)
               </label>
               <div className="relative flex items-center">
                 <div className="absolute left-3.5 pointer-events-none text-slate-400">
@@ -256,12 +297,82 @@ export const LoginPage = () => {
               </div>
             </div>
 
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              ✉️ Se te enviará un <strong className="text-cyan-400">código OTP de 6 dígitos</strong> a tu correo vía Mailjet para verificar tu identidad antes de entrar.
+            </p>
+
             <button
               type="submit"
               disabled={loading}
               className="btn-neon w-full py-3.5 text-sm font-bold mt-2"
             >
-              <span>{loading ? "Creando Cuenta..." : "Registrarme como Administrador"}</span>
+              <span>{loading ? "Enviando Código..." : "Registrarme y Recibir Código"}</span>
+              <HiOutlineArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        )}
+
+        {/* Paso 2 de Registro: Ingreso del Código de Verificación OTP Mailjet */}
+        {activeTab === "register" && regStep === 2 && (
+          <form onSubmit={handleVerifyRegistration} className="space-y-4">
+            <div className="text-center space-y-1.5 mb-2">
+              <div className="w-12 h-12 rounded-full bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center mx-auto text-cyan-400 mb-2">
+                <HiOutlineMail className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-white">Verifica tu Correo</h3>
+              <p className="text-xs text-slate-400">
+                Hemos enviado un código OTP de 6 dígitos a:
+              </p>
+              <p className="text-xs font-mono-code font-bold text-cyan-400">
+                {regEmail}
+              </p>
+            </div>
+
+            {previewOtp && (
+              <div className="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-center text-xs text-cyan-300 font-mono-code">
+                Código generado: <strong className="text-white text-sm tracking-widest">{previewOtp}</strong>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 text-center">
+                Ingresa el Código de 6 Dígitos
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                required
+                autoFocus
+                value={regOtpCode}
+                onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="123456"
+                className="input-party text-center text-2xl font-mono-code tracking-[0.4em] font-black text-cyan-400 py-3"
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-xs pt-1">
+              <button
+                type="button"
+                onClick={() => setRegStep(1)}
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                ← Cambiar Datos
+              </button>
+              <button
+                type="button"
+                onClick={handleResendRegisterCode}
+                className="text-cyan-400 hover:text-cyan-300 font-semibold cursor-pointer"
+              >
+                Reenviar Código
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || regOtpCode.length < 6}
+              className="btn-neon w-full py-3.5 text-sm font-bold mt-2 disabled:opacity-50"
+            >
+              <span>{loading ? "Verificando..." : "Activar Cuenta y Entrar"}</span>
               <HiOutlineArrowRight className="w-4 h-4" />
             </button>
           </form>

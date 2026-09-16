@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api/apiClient";
+import { formatElSalvadorPhone } from "../utils/phoneFormatter";
 import { HiOutlineSave, HiOutlineCog, HiOutlineSparkles } from "react-icons/hi";
 import toast from "react-hot-toast";
 
@@ -19,9 +20,10 @@ export const SettingsPage = () => {
       generalPuerta: 25,
     },
     bankTransferInfo: {
-      bankName: "Banco Agrícola / BAC / Cuscatlán / Chivo Wallet",
-      accountNumber: "",
-      accountHolder: "CHUMPATIN EVENTOS",
+      bankName: "Banco Promerica",
+      accountType: "CUENTA DE AHORRO",
+      accountNumber: "20000044022070",
+      accountHolder: "Emanuel Alexander Benitez vides",
       whatsappSupport: "7788-9900",
     },
   });
@@ -240,6 +242,105 @@ export const SettingsPage = () => {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Información Bancaria Oficial para Preventa */}
+        <div className="party-card p-6 space-y-4">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+            🏦 Cuenta Bancaria Oficial para Preventa
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                Banco
+              </label>
+              <input
+                type="text"
+                value={settings.bankTransferInfo?.bankName || "Banco Promerica"}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    bankTransferInfo: { ...settings.bankTransferInfo, bankName: e.target.value },
+                  })
+                }
+                className="input-party text-sm font-semibold"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                Tipo de Cuenta
+              </label>
+              <input
+                type="text"
+                value={settings.bankTransferInfo?.accountType || "CUENTA DE AHORRO"}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    bankTransferInfo: { ...settings.bankTransferInfo, accountType: e.target.value },
+                  })
+                }
+                className="input-party text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                Número de Cuenta
+              </label>
+              <input
+                type="text"
+                value={settings.bankTransferInfo?.accountNumber || "20000044022070"}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    bankTransferInfo: { ...settings.bankTransferInfo, accountNumber: e.target.value },
+                  })
+                }
+                className="input-party text-sm font-mono-code font-bold text-cyan-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                Titular de la Cuenta
+              </label>
+              <input
+                type="text"
+                value={settings.bankTransferInfo?.accountHolder || "Emanuel Alexander Benitez vides"}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    bankTransferInfo: { ...settings.bankTransferInfo, accountHolder: e.target.value },
+                  })
+                }
+                className="input-party text-sm font-medium"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                WhatsApp de Soporte (El Salvador)
+              </label>
+              <input
+                type="text"
+                maxLength={9}
+                value={settings.bankTransferInfo?.whatsappSupport || ""}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    bankTransferInfo: {
+                      ...settings.bankTransferInfo,
+                      whatsappSupport: formatElSalvadorPhone(e.target.value),
+                    },
+                  })
+                }
+                placeholder="Ej: 7788-9900"
+                className="input-party text-sm font-mono-code"
+              />
             </div>
           </div>
         </div>

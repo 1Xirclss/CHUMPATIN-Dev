@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api/apiClient";
+import { formatElSalvadorPhone } from "../utils/phoneFormatter";
 import { HiOutlineX, HiOutlineCheck } from "react-icons/hi";
 
 export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
@@ -20,7 +21,7 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
     amount: 15,
     paymentMethod: "TRANSFERENCIA",
     paymentStatus: "CANCELADO",
-    transferBank: "Banco Agrícola",
+    transferBank: "Banco Promerica",
     transferReference: "",
     notes: "",
     customTicketNumber: "",
@@ -59,7 +60,7 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
     if (saleToEdit) {
       setFormData({
         customerName: saleToEdit.customerName || "",
-        phone: saleToEdit.phone || "",
+        phone: formatElSalvadorPhone(saleToEdit.phone || ""),
         schoolPromo: saleToEdit.schoolPromo || "",
         ticketType: saleToEdit.ticketType || "Promo 2026 - Preventa ($15)",
         quantity: saleToEdit.quantity || 1,
@@ -67,7 +68,7 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
         amount: saleToEdit.amount || 15,
         paymentMethod: saleToEdit.paymentMethod || "TRANSFERENCIA",
         paymentStatus: saleToEdit.paymentStatus || "CANCELADO",
-        transferBank: saleToEdit.transferBank || "Banco Agrícola",
+        transferBank: saleToEdit.transferBank || "Banco Promerica",
         transferReference: saleToEdit.transferReference || "",
         notes: saleToEdit.notes || "",
         customTicketNumber: saleToEdit.ticketNumber || "",
@@ -162,15 +163,19 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
           {/* Teléfono y Colegio / Promo */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Teléfono / WhatsApp
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  Teléfono / WhatsApp
+                </label>
+                <span className="text-[11px] text-slate-500 font-normal">Opcional</span>
+              </div>
               <input
                 type="text"
+                maxLength={9}
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="Ej: 7788-9900"
-                className="input-party text-sm"
+                onChange={(e) => setFormData({ ...formData, phone: formatElSalvadorPhone(e.target.value) })}
+                placeholder="Ej: 7788-9900 (Opcional)"
+                className="input-party text-sm font-mono-code"
               />
             </div>
             <div>
@@ -288,6 +293,26 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
           {/* Detalles de Transferencia si aplica */}
           {formData.paymentMethod === "TRANSFERENCIA" && (
             <div className="p-3.5 bg-[#141724] rounded-xl border border-white/[0.08] space-y-3">
+              {/* Información de la cuenta oficial de preventa */}
+              <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold flex items-center gap-1">
+                    🏦 Cuenta Oficial de Preventa:
+                  </span>
+                  <span className="text-[11px] text-cyan-400 font-semibold bg-cyan-500/20 px-2 py-0.5 rounded">
+                    Banco Promerica · Ahorro
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between font-mono-code pt-0.5">
+                  <span className="text-white font-bold text-sm tracking-wider">
+                    20000044022070
+                  </span>
+                  <span className="text-[11px] text-slate-300 font-sans">
+                    Emanuel Alexander Benitez vides
+                  </span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
@@ -296,8 +321,9 @@ export const SaleModal = ({ isOpen, onClose, onSave, saleToEdit }) => {
                   <select
                     value={formData.transferBank}
                     onChange={(e) => setFormData({ ...formData, transferBank: e.target.value })}
-                    className="input-party text-xs"
+                    className="input-party text-xs cursor-pointer"
                   >
+                    <option value="Banco Promerica">Banco Promerica (Oficial Preventa)</option>
                     <option value="Banco Agrícola">Banco Agrícola</option>
                     <option value="BAC Credomatic">BAC Credomatic</option>
                     <option value="Banco Cuscatlán">Banco Cuscatlán</option>

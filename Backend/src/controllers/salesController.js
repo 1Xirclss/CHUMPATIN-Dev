@@ -3,6 +3,18 @@ import Attendee from "../models/Attendee.js";
 import TicketType from "../models/TicketType.js";
 import WristbandCheckIn from "../models/WristbandCheckIn.js";
 
+// Formateador estándar de teléfono para El Salvador (XXXX-XXXX)
+export const formatSVPhone = (val) => {
+  if (!val) return "";
+  let digits = String(val).replace(/\D/g, "");
+  if (digits.startsWith("503") && digits.length > 8) {
+    digits = digits.slice(3);
+  }
+  digits = digits.slice(0, 8);
+  if (digits.length <= 4) return digits;
+  return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+};
+
 // Siguiente número correlativo de ticket
 const getNextTicketNumber = async () => {
   const lastSale = await Sale.findOne().sort({ ticketNumber: -1 }).select("ticketNumber");
@@ -133,6 +145,8 @@ export const createSale = async (req, res) => {
       });
     }
 
+    const cleanPhone = formatSVPhone(phone);
+
     // 1. Colección ATTENDEES: Buscar o crear el asistente
     let attendee = await Attendee.findOne({
       fullName: { $regex: new RegExp(`^${customerName.trim()}$`, "i") },
@@ -141,12 +155,12 @@ export const createSale = async (req, res) => {
     if (!attendee) {
       attendee = await Attendee.create({
         fullName: customerName.trim(),
-        phone: phone ? phone.trim() : "",
+        phone: cleanPhone,
         schoolPromo: schoolPromo ? schoolPromo.trim() : "",
         notes: notes.trim(),
       });
     } else {
-      if (phone && !attendee.phone) attendee.phone = phone.trim();
+      if (cleanPhone && !attendee.phone) attendee.phone = cleanPhone;
       if (schoolPromo && !attendee.schoolPromo) attendee.schoolPromo = schoolPromo.trim();
       await attendee.save();
     }
@@ -229,7 +243,7 @@ export const updateSale = async (req, res) => {
     } = req.body;
 
     if (customerName) sale.customerName = customerName.trim();
-    if (phone !== undefined) sale.phone = phone.trim();
+    if (phone !== undefined) sale.phone = formatSVPhone(phone);
     if (schoolPromo !== undefined) sale.schoolPromo = schoolPromo.trim();
     if (ticketType) sale.ticketType = ticketType.trim();
     if (quantity !== undefined) sale.quantity = Number(quantity);
