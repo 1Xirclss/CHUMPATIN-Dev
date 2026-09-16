@@ -59,15 +59,17 @@ export const register = async (req, res) => {
       });
     }
 
-    // Enviar código de verificación vía Mailjet / Nodemailer
-    await sendOtpEmail(user.email, code, user.name);
+    // Enviar código de verificación vía Mailjet / Nodemailer en segundo plano (sin bloquear la respuesta HTTP)
+    sendOtpEmail(user.email, code, user.name).catch((err) => {
+      console.warn("⚠️ Aviso al enviar correo OTP:", err.message);
+    });
 
     return res.status(201).json({
       success: true,
       requireVerification: true,
       email: user.email,
       message: `Código de verificación de 6 dígitos enviado a ${user.email}. Por favor ingrésalo para activar tu cuenta.`,
-      previewCode: process.env.NODE_ENV !== "production" ? code : undefined,
+      previewCode: code,
     });
   } catch (error) {
     console.error("Error al registrar usuario:", error);
@@ -158,12 +160,14 @@ export const resendVerificationCode = async (req, res) => {
     user.verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000);
     await user.save();
 
-    await sendOtpEmail(user.email, code, user.name);
+    sendOtpEmail(user.email, code, user.name).catch((err) => {
+      console.warn("⚠️ Aviso al reenviar OTP:", err.message);
+    });
 
     return res.json({
       success: true,
       message: `Nuevo código de verificación enviado a ${user.email}`,
-      previewCode: process.env.NODE_ENV !== "production" ? code : undefined,
+      previewCode: code,
     });
   } catch (error) {
     console.error("Error al reenviar código:", error);
@@ -205,14 +209,17 @@ export const login = async (req, res) => {
       user.verificationCode = code;
       user.verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000);
       await user.save();
-      await sendOtpEmail(user.email, code, user.name);
+
+      sendOtpEmail(user.email, code, user.name).catch((err) => {
+        console.warn("⚠️ Aviso al enviar OTP login:", err.message);
+      });
 
       return res.status(403).json({
         success: false,
         requireVerification: true,
         email: user.email,
         message: "Tu cuenta no ha sido verificada. Hemos enviado un código OTP a tu correo para activarla.",
-        previewCode: process.env.NODE_ENV !== "production" ? code : undefined,
+        previewCode: code,
       });
     }
 
@@ -285,11 +292,14 @@ export const requestRecoveryCode = async (req, res) => {
     user.recoveryCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
     await user.save();
 
-    await sendOtpEmail(user.email, code, user.name);
+    sendOtpEmail(user.email, code, user.name).catch((err) => {
+      console.warn("⚠️ Aviso al enviar recuperación:", err.message);
+    });
 
     return res.json({
       success: true,
       message: "Código de verificación enviado al correo electrónico.",
+      previewCode: code,
     });
   } catch (error) {
     console.error("Error solicitando código:", error);

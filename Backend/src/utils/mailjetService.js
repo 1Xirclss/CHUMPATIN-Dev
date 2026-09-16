@@ -11,9 +11,12 @@ if (config.mailjet.apiKey && config.mailjet.secretKey && !config.mailjet.apiKey.
   });
 }
 
-// Configuración de Nodemailer como transporte directo
+// Configuración de Nodemailer como transporte directo con timeout estricto
 const transporter = nodemailer.createTransport({
   service: "gmail",
+  connectionTimeout: 4000,
+  greetingTimeout: 4000,
+  socketTimeout: 4000,
   auth: {
     user: config.email.user,
     pass: config.email.password,
